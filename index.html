@@ -148,7 +148,9 @@
   @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     html, body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
-    #key-screen, #main-app, .overlay, .nav-drawer { display: none !important; }
+    #key-screen { display: none !important; }
+    #main-app { display: none !important; }
+    .overlay, .nav-drawer, .no-print { display: none !important; }
     #print-output { display: block !important; }
   }
   #print-output { display: none; font-family: Georgia, serif; color: #000; background: #fff; }
@@ -394,7 +396,8 @@ function changeKey() {
 
 function showApp() {
   document.getElementById("key-screen").style.display = "none";
-  document.getElementById("main-app").style.display = "flex";
+  document.getElementById("main-app").style.removeProperty("display");
+  document.getElementById("main-app").style.setProperty("display", "flex", "important");
   // Populate sidebar quote
   document.getElementById("sidebar-quote-text").textContent = '"' + quote.text + '"';
   document.getElementById("sidebar-quote-attr").textContent = "— " + quote.attr;
@@ -642,7 +645,7 @@ function renderContent() {
           style="padding:22px 20px;font-size:16px;letter-spacing:3px;margin-top:8px;${!loading&&policyIdea.trim()&&domain?'box-shadow:0 4px 24px rgba(212,168,67,0.35);':''}">
           ${loading ? '<span class="spin" style="font-size:18px">⟳</span>&nbsp; PROCESSING…' : '🖖&nbsp; ENGAGE LOGIC ENGINE &nbsp;→'}
         </button>
-        ${!policyIdea.trim()||!domain ? '<div style="text-align:center;font-family:'Courier Prime',monospace;font-size:11px;color:#4a5a80;letter-spacing:1px;margin-top:-12px">' + (!domain?'SELECT A DOMAIN ABOVE':!policyIdea.trim()?'ENTER YOUR POLICY ABOVE':'') + '</div>' : ''}
+        ${!policyIdea.trim()||!domain ? '<div style="text-align:center;font-family:monospace;font-size:11px;color:#4a5a80;letter-spacing:1px;margin-top:-12px">' + (!domain?'SELECT A DOMAIN ABOVE':!policyIdea.trim()?'ENTER YOUR POLICY ABOVE':'') + '</div>' : ''}
         <div class="quote-card" id="rotating-quote-card">
           <div class="quote-text" id="rotating-quote-text">"${quote.text}"</div>
           <div class="quote-attr" id="rotating-quote-attr">— ${quote.attr}</div>
