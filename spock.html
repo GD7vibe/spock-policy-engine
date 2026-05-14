@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOCK — Policy Logic Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #1a1f2e; color: #f0f4ff; font-family: Georgia, serif; min-height: 100vh; }
+  .app { max-width: 680px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* HEADER */
+  .header { position: sticky; top: 0; z-index: 100; background: #1a1f2e; border-bottom: 1px solid rgba(212,168,67,0.3); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .logo-wrap { display: flex; align-items: center; gap: 12px; }
+  .logo { font-family: 'Courier Prime', monospace; font-weight: 700; font-size: 24px; letter-spacing: 7px; color: #d4a843; line-height: 1; }
+  .logo-sub { font-family: 'Courier Prime', monospace; font-size: 9px; color: #5060a0; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .progress-label { font-family: 'Courier Prime', monospace; font-size: 10px; color: #7080a0; text-align: right; margin-bottom: 4px; }
+  .progress-bar { width: 56px; height: 3px; background: rgba(212,168,67,0.15); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(to right, #d4a843, #b8862a); transition: width 0.4s; }
+  .icon-btn { background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 6px; padding: 9px 13px; color: #c0d0f0; cursor: pointer; font-size: 14px; font-family: 'Courier Prime', monospace; }
+  .icon-btn:hover { background: #2e3550; }
+
+  /* STAGE HEADER */
+  .stage-header { padding: 20px 20px 0; }
+  .stage-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .stage-title { font-family: 'Courier Prime', monospace; font-weight: 700; font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: #ffffff; flex: 1; }
+  .stage-num { font-family: 'Courier Prime', monospace; font-size: 12px; color: #d4a843; opacity: 0.7; }
+  .stage-divider { height: 1px; background: linear-gradient(to right, rgba(212,168,67,0.6), transparent); margin-bottom: 12px; }
+  .stage-desc { font-size: 14px; color: #7080a0; font-style: italic; line-height: 1.6; margin-bottom: 20px; }
+
+  /* CONTENT */
+  .content { flex: 1; padding: 0 20px 80px; }
+
+  /* FORM ELEMENTS */
+  .field-label { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #a0b0d0; display: block; margin-bottom: 10px; }
+  .domain-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .domain-btn { padding: 10px 14px; font-size: 12px; font-family: 'Courier Prime', monospace; letter-spacing: 1px; text-transform: uppercase; background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 6px; color: #c0d0f0; cursor: pointer; transition: all 0.15s; }
+  .domain-btn:hover { background: #2e3550; }
+  .domain-btn.active { background: linear-gradient(135deg, #d4a843, #b8862a); border: none; color: #111; font-weight: 700; }
+  textarea, input[type=password] { width: 100%; padding: 14px; background: #1e2438; border: 1px solid rgba(212,168,67,0.3); border-radius: 8px; color: #ffffff; font-size: 16px; line-height: 1.7; font-family: Georgia, serif; resize: vertical; outline: none; }
+  textarea:focus, input[type=password]:focus { border-color: #d4a843; }
+  textarea::placeholder, input::placeholder { color: #3a4a6a; }
+
+  /* BUTTONS */
+  .primary-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 18px 20px; width: 100%; background: linear-gradient(135deg, #d4a843, #b8862a); border: none; border-radius: 8px; color: #111; font-size: 14px; font-family: 'Courier Prime', monospace; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; font-weight: 700; transition: all 0.2s; }
+  .primary-btn:hover { filter: brightness(1.1); }
+  .primary-btn:active { transform: scale(0.98); }
+  .primary-btn:disabled { background: #252b3d; border: 1px solid rgba(212,168,67,0.15); color: #404a6a; cursor: not-allowed; filter: none; }
+  .ghost-btn { padding: 14px; width: 100%; background: transparent; border: 1px solid rgba(212,168,67,0.25); border-radius: 8px; color: #7080a0; font-size: 12px; font-family: 'Courier Prime', monospace; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
+  .ghost-btn:hover { border-color: rgba(212,168,67,0.5); color: #a0b0d0; }
+
+  /* CARDS */
+  .quote-card { padding: 18px; background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 8px; }
+  .quote-text { font-style: italic; font-size: 15px; color: #e0e8ff; line-height: 1.7; }
+  .quote-attr { font-family: 'Courier Prime', monospace; font-size: 11px; color: #d4a843; letter-spacing: 2px; margin-top: 10px; }
+  .policy-tag { padding: 14px 16px; background: #252b3d; border-left: 4px solid #d4a843; border-radius: 0 8px 8px 0; margin-bottom: 4px; }
+  .policy-tag-domain { font-size: 11px; color: #d4a843; font-family: 'Courier Prime', monospace; letter-spacing: 2px; margin-bottom: 6px; }
+  .policy-tag-text { font-size: 15px; color: #c0d0f0; font-style: italic; }
+
+  /* RESULT */
+  .result-text { font-size: 16px; line-height: 1.9; color: #f0f4ff; white-space: pre-wrap; }
+
+  /* ERROR */
+  .error-box { padding: 14px 16px; background: rgba(220,60,60,0.18); border: 1px solid rgba(220,80,80,0.5); border-radius: 8px; color: #ffb0b0; font-size: 13px; line-height: 1.6; word-break: break-word; font-family: 'Courier Prime', monospace; }
+
+  /* DIVIDER */
+  .section-divider { height: 1px; background: rgba(212,168,67,0.2); margin: 22px 0; }
+
+  /* NAV OVERLAY */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; }
+  .overlay.open { display: block; }
+  .nav-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 680px; background: #1e2438; border-top: 1px solid rgba(212,168,67,0.3); border-radius: 16px 16px 0 0; z-index: 201; padding: 20px 20px 44px; max-height: 75vh; overflow-y: auto; display: none; }
+  .nav-drawer.open { display: block; }
+  .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .nav-title { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; color: #7080a0; text-transform: uppercase; }
+  .nav-close { background: none; border: none; color: #7080a0; cursor: pointer; font-size: 22px; line-height: 1; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 15px 16px; border-radius: 8px; cursor: pointer; width: 100%; text-align: left; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); transition: all 0.15s; }
+  .nav-item.active { background: rgba(212,168,67,0.15); border-color: #d4a843; }
+  .nav-item.complete { background: rgba(212,168,67,0.06); border-color: rgba(212,168,67,0.3); }
+  .nav-item.locked { opacity: 0.25; cursor: default; }
+  .nav-num { font-family: 'Courier Prime', monospace; font-size: 11px; color: #4a5a80; min-width: 22px; }
+  .nav-item.active .nav-num { color: #d4a843; }
+  .nav-label { font-size: 14px; font-family: 'Courier Prime', monospace; text-transform: uppercase; color: #b0c0e0; flex: 1; }
+  .nav-item.active .nav-label { color: #fff; }
+  .nav-check { color: #d4a843; }
+  .nav-active-badge { color: #d4a843; font-size: 10px; font-family: 'Courier Prime', monospace; }
+
+  /* API KEY SCREEN */
+  .key-screen { min-height: 100vh; max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; gap: 20px; }
+  .key-card { width: 100%; background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .key-card-title { font-family: 'Courier Prime', monospace; font-size: 13px; color: #ffffff; letter-spacing: 1px; }
+  .key-card-desc { font-size: 13px; color: #8090b0; line-height: 1.6; }
+  .key-card-desc a { color: #d4a843; }
+
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .cursor { animation: blink 0.85s step-end infinite; color: #d4a843; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+  .gap { display: flex; flex-direction: column; gap: 20px; }
+  .gap-sm { display: flex; flex-direction: column; gap: 12px; }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
+    #key-screen, #main-app, .overlay, .nav-drawer { display: none !important; }
+    #print-output { display: block !important; }
+  }
+  #print-output { display: none; font-family: Georgia, serif; color: #000; background: #fff; }
+  .print-cover { text-align: center; padding: 60px 40px 40px; border-bottom: 3px solid #b8862a; page-break-after: always; }
+  .print-cover-logo { font-family: 'Courier Prime', monospace; font-size: 42px; font-weight: 700; letter-spacing: 10px; color: #b8862a; }
+  .print-cover-sub { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; color: #888; text-transform: uppercase; margin-top: 6px; }
+  .print-cover-domain { font-family: 'Courier Prime', monospace; font-size: 13px; letter-spacing: 2px; color: #999; text-transform: uppercase; margin-top: 30px; }
+  .print-cover-policy { font-size: 18px; color: #222; font-style: italic; line-height: 1.6; margin-top: 12px; max-width: 500px; margin-left: auto; margin-right: auto; }
+  .print-score-badge { display: inline-block; margin-top: 28px; padding: 12px 28px; border: 2px solid #b8862a; border-radius: 4px; font-family: 'Courier Prime', monospace; font-size: 20px; font-weight: 700; color: #b8862a; }
+  .print-cover-meta { font-family: 'Courier Prime', monospace; font-size: 10px; color: #bbb; letter-spacing: 1px; margin-top: 28px; }
+  .print-section { padding: 32px 40px; border-bottom: 1px solid #e0e0e0; }
+  .print-section:last-child { border-bottom: none; }
+  .print-section-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .print-section-num { font-family: 'Courier Prime', monospace; font-size: 11px; color: #b8862a; letter-spacing: 2px; }
+  .print-section-title { font-family: 'Courier Prime', monospace; font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #1a1f2e; }
+  .print-rule { height: 2px; background: #b8862a; width: 36px; margin: 8px 0 18px; }
+  .print-body { font-size: 11pt; line-height: 1.85; color: #1a1a1a; white-space: pre-wrap; }
+  .print-rejected { margin: 32px 40px; padding: 20px 24px; border: 2px solid #cc3333; border-radius: 4px; }
+  .print-rejected-title { font-family: 'Courier Prime', monospace; font-size: 13px; letter-spacing: 2px; color: #cc3333; text-transform: uppercase; margin-bottom: 10px; }
+  .print-rejected-body { font-size: 11pt; color: #661111; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<!-- API KEY SCREEN -->
+<div id="key-screen" class="key-screen">
+  <div style="text-align:center">
+    <div style="font-size:52px;margin-bottom:12px">🖖</div>
+    <div style="font-family:'Courier Prime',monospace;font-weight:700;font-size:30px;letter-spacing:7px;color:#d4a843">SPOCK</div>
+    <div style="font-family:'Courier Prime',monospace;font-size:10px;color:#5060a0;letter-spacing:2px;margin-top:4px">POLICY LOGIC ENGINE</div>
+  </div>
+  <div class="key-card">
+    <div class="key-card-title">Enter your Anthropic API Key</div>
+    <div class="key-card-desc">
+      Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys.<br>
+      Your key is saved in your browser only — never sent anywhere except directly to Anthropic.
+    </div>
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." onkeydown="if(event.key==='Enter')saveKey()" />
+    <button class="primary-btn" onclick="saveKey()">🖖 ENGAGE</button>
+  </div>
+  <div class="quote-card" style="width:100%">
+    <div class="quote-text" id="key-screen-quote"></div>
+    <div class="quote-attr" id="key-screen-attr"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="app" style="display:none">
+  <div class="header" id="top">
+    <div class="logo-wrap">
+      <span style="font-size:24px">🖖</span>
+      <div>
+        <div class="logo">SPOCK</div>
+        <div class="logo-sub">Policy Logic Engine</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="progress-wrap" style="display:none;text-align:right">
+        <div class="progress-label" id="progress-label">0/6</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <button class="icon-btn" onclick="toggleNav()">☰</button>
+      <button class="icon-btn no-print" id="restart-btn" onclick="confirmRestart()" title="Start over" style="display:none;color:#ff8080;border-color:rgba(220,80,80,0.4)">↺ NEW</button>
+      <button class="icon-btn" onclick="changeKey()" title="Change API key">🔑</button>
+      <button class="icon-btn no-print" onclick="printPDF()" title="Print / Save as PDF" style="background:linear-gradient(135deg,#d4a843,#b8862a);color:#111;font-weight:700">⎙ PDF</button>
+    </div>
+  </div>
+
+  <div class="stage-header">
+    <div class="stage-title-row">
+      <span id="stage-icon" style="font-size:20px"></span>
+      <h1 class="stage-title" id="stage-title"></h1>
+      <span class="stage-num" id="stage-num"></span>
+    </div>
+    <div class="stage-divider"></div>
+    <p class="stage-desc" id="stage-desc"></p>
+  </div>
+
+  <div class="content" id="content"></div>
+</div>
+
+<!-- NAV -->
+<div class="overlay" id="overlay" onclick="closeNav()"></div>
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-header">
+    <div class="nav-title">Logic Pipeline</div>
+    <button class="nav-close" onclick="closeNav()">✕</button>
+  </div>
+  <div id="nav-items"></div>
+  <button class="ghost-btn" id="reset-btn" style="display:none;margin-top:16px" onclick="resetAll()">← New Proposition</button>
+</div>
+
+<script>
+const STAGES = [
+  { id:"input",          label:"01", title:"Policy Input",         icon:"🖖" },
+  { id:"incentive",      label:"02", title:"Incentive Analysis",   icon:"🎯" },
+  { id:"consequences",   label:"03", title:"Consequences Audit",   icon:"🔍" },
+  { id:"refinement",     label:"04", title:"Policy Refinement",    icon:"⚙️"  },
+  { id:"implementation", label:"05", title:"Implementation Plan",  icon:"📋" },
+  { id:"monitoring",     label:"06", title:"Monitoring Framework", icon:"📊" },
+];
+
+const STAGE_DESC = {
+  input:          "State your policy proposition. Logic demands we examine what behaviour it incentivises, what it will produce, and whether the two are the same thing.",
+  incentive:      "Incentive structure analysis — who responds to what, and how. Does the policy actually produce the intended behaviour?",
+  consequences:   "Second-order effects, gaming vectors, systemic risks, and distributional impacts.",
+  refinement:     "A logically hardened policy built to maximise intended incentives and neutralise identified risks.",
+  implementation: "Practical steps, legislative pathway, timelines, and resources required to turn the policy into law.",
+  monitoring:     "KPIs, review triggers, modification and cancellation protocols.",
+};
+
+const DOMAINS = [
+  "Taxation","Healthcare","Education","Criminal Justice",
+  "Immigration","Housing & Planning","Business Regulation",
+  "Welfare & Benefits","Defence & Security","Energy & Environment",
+  "Transport","Trade & Economy",
+];
+
+const QUOTES = [
+  { text:"Logic is the beginning of wisdom, not the end.", attr:"SPOCK" },
+  { text:"Insufficient facts always invite danger.", attr:"SPOCK" },
+  { text:"You get what you incentivise.", attr:"ECONOMIC LAW" },
+  { text:"The needs of the many outweigh the needs of the few.", attr:"SPOCK" },
+];
+
+const SYS = {
+  econ: `You are a rigorous political economist applying "You get what you incentivise." Direct, analytical, non-ideological. Never sugarcoat. CAPITALISED plain text section headers only. No markdown symbols. Be concise — your entire response must be under 500 words. Every word must earn its place.`,
+  sys:  `You are a systems thinker specialising in second and third-order policy effects. Rigorous, direct. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Cut ruthlessly.`,
+  dft:  `You are a senior policy drafter. Direct and practical. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. No padding.`,
+  imp:  `You are a government implementation specialist. Concrete, timeline-specific. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Bullet points where it saves words.`,
+  eval: `You are a policy evaluation expert specialising in evidence-based governance. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Numbers and specifics only, no waffle.`,
+};
+
+// State
+let apiKey = localStorage.getItem("spock_key") || "";
+let currentStage = "input";
+let results = {};
+let completedStages = [];
+let domain = "";
+let policyIdea = "";
+let monitoringData = "";
+let loading = false;
+let incentiveScore = 0; // extracted from incentive analysis
+
+function extractScore(text) {
+  // Look for patterns like "Score: 4", "6/10", "score of 7", "3 out of 10"
+  const patterns = [
+    /score[:\s]+(\d+)/i,
+    /(\d+)\s*\/\s*10/i,
+    /score\s+of\s+(\d+)/i,
+    /(\d+)\s+out\s+of\s+10/i,
+    /alignment[:\s]+(\d+)/i,
+    /rating[:\s]+(\d+)/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      const n = parseInt(m[1]);
+      if (n >= 1 && n <= 10) return n;
+    }
+  }
+  return null;
+}
+const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
+// Init
+document.getElementById("key-screen-quote").textContent = `"${quote.text}"`;
+document.getElementById("key-screen-attr").textContent = `— ${quote.attr}`;
+
+if (apiKey) showApp();
+else document.getElementById("key-screen").style.display = "flex";
+
+function saveKey() {
+  const k = document.getElementById("api-key-input").value.trim();
+  if (!k) return;
+  apiKey = k;
+  localStorage.setItem("spock_key", k);
+  showApp();
+}
+
+function changeKey() {
+  localStorage.removeItem("spock_key");
+  apiKey = "";
+  document.getElementById("main-app").style.display = "none";
+  document.getElementById("key-screen").style.display = "flex";
+  document.getElementById("api-key-input").value = "";
+}
+
+function showApp() {
+  document.getElementById("key-screen").style.display = "none";
+  document.getElementById("main-app").style.display = "flex";
+  renderStage();
+}
+
+// ── API CALL ──────────────────────────────────────────────────────────────────
+async function callClaude(userPrompt, systemPrompt) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role:"user", content: userPrompt }],
+    }),
+  });
+
+  const data = await response.json();
+  if (data.error) throw new Error(`${data.error.type}: ${data.error.message}`);
+  if (data.content?.[0]?.text) return data.content[0].text;
+  throw new Error("No text in response: " + JSON.stringify(data).slice(0,200));
+}
+
+// ── STAGE RUNNER ──────────────────────────────────────────────────────────────
+async function runStage(stageId, userPrompt, sysPrompt, extraCompleted = []) {
+  if (loading) return;
+  loading = true;
+  renderContent();
+  try {
+    const result = await callClaude(userPrompt, sysPrompt);
+    results[stageId] = result;
+    // Extract score from incentive analysis, then fetch suggestions
+    if (stageId === "incentive") {
+      const s = extractScore(result);
+      incentiveScore = s !== null ? s : 5;
+      suggestions = null;
+      suggestionLoading = true;
+      completedStages = [...new Set([...completedStages, ...extraCompleted, stageId])];
+      currentStage = stageId;
+      loading = false;
+      showRestartBtn();
+      renderStage();
+      document.getElementById("top").scrollIntoView({ behavior:"smooth" });
+      await doSuggestions();
+      return;
+    }
+    completedStages = [...new Set([...completedStages, ...extraCompleted, stageId])];
+    currentStage = stageId;
+    showRestartBtn();
+    renderStage();
+    document.getElementById("top").scrollIntoView({ behavior:"smooth" });
+  } catch(e) {
+    loading = false;
+    showError(e.message);
+    renderContent();
+  }
+}
+
+// ── SUGGESTIONS ───────────────────────────────────────────────────────────────
+let suggestions = null;
+let suggestionLoading = false;
+
+async function doSuggestions() {
+  suggestionLoading = true;
+  renderContent();
+  try {
+    const belowThreshold = incentiveScore < 5;
+    const prompt = `ORIGINAL POLICY: ${policyIdea}
+DOMAIN: ${domain}
+INCENTIVE ANALYSIS: ${results.incentive}
+INCENTIVE SCORE: ${incentiveScore}/10
+
+${belowThreshold
+  ? `The policy scored ${incentiveScore}/10 — below the 5/10 threshold needed to proceed. Suggest 3 specific amendments to the policy wording that would fix the core incentive problems identified and get it above the threshold. Each amendment must stay true to the original spirit and intent of the policy.`
+  : `The policy scored ${incentiveScore}/10 — it passes the threshold but could be stronger. Suggest 3 specific amendments to the policy wording that would improve the incentive alignment further, staying within the spirit of the original idea.`
+}
+
+For each suggestion provide:
+AMENDMENT [N]
+A single sentence describing the specific change to make to the policy.
+
+REASON
+One sentence explaining exactly which incentive problem this fixes and why it improves the score.
+
+REVISED WORDING
+The amended policy proposition as it would read after this change is applied (full restatement, not a fragment).
+
+Keep each amendment focused and actionable. Do not number sections beyond the three amendments. Plain text only, no markdown.`;
+
+    const result = await callClaude(prompt,
+      `You are a policy amendment specialist. Suggest precise, targeted improvements to fix incentive problems. Stay within the original intent. Plain text only, use the exact headers specified. Each amendment must be brief — the entire response under 600 words total.`
+    );
+    suggestions = result;
+  } catch(e) {
+    suggestions = null;
+  }
+  suggestionLoading = false;
+  renderContent();
+}
+
+function applyAmendment(n) {
+  // Find the REVISED WORDING for amendment n and apply it to policyIdea
+  if (!suggestions) return;
+  const blocks = suggestions.split(/AMENDMENT\s+\d+/i).filter(b => b.trim());
+  const block = blocks[n - 1];
+  if (!block) return;
+  const match = block.match(/REVISED WORDING\s*\n([\s\S]+?)(?=AMENDMENT|\Z|$)/i);
+  if (match) {
+    const revised = match[1].trim();
+    if (revised) {
+      policyIdea = revised;
+      // Reset and re-run from scratch with new policy
+      results = {}; completedStages = []; incentiveScore = 0; suggestions = null; streamedStages.clear();
+      currentStage = "input";
+      renderStage();
+      // Auto-submit
+      setTimeout(() => doIncentive(), 300);
+    }
+  }
+}
+
+// ── PROMPTS ───────────────────────────────────────────────────────────────────
+function doIncentive() {
+  runStage("incentive",
+    `POLICY DOMAIN: ${domain}\nPOLICY IDEA: ${policyIdea}\n\nCORE INCENTIVE STRUCTURE\nWhat behaviour does this reward or punish? Who are the key actors?\n\nBEHAVIOURAL PREDICTIONS\nHow will individuals, businesses, and bureaucrats respond?\n\nINCENTIVE CONFLICTS\nWhat perverse incentives might emerge?\n\nRAW VERDICT\nScore 1-10 for incentive alignment and explain why.`,
+    SYS.econ, ["input"]);
+}
+
+function doConsequences() {
+  runStage("consequences",
+    `POLICY: ${policyIdea}\nDOMAIN: ${domain}\nINCENTIVE ANALYSIS: ${results.incentive}\n\nSECOND-ORDER EFFECTS\nWhat happens after actors respond?\n\nGAMING AND EXPLOITATION VECTORS\nHow will rational actors game this?\n\nSYSTEMIC RISKS\nMarket distortions, bureaucratic capture, dependency effects.\n\nDISTRIBUTIONAL IMPACTS\nWho bears unexpected cost? Who benefits?\n\nSEVERITY RATING\nRate each LOW/MEDIUM/HIGH/CRITICAL. Identify the single most dangerous.`,
+    SYS.sys);
+}
+
+function doRefinement() {
+  runStage("refinement",
+    `ORIGINAL POLICY: ${policyIdea}\nDOMAIN: ${domain}\nINCENTIVE ANALYSIS: ${results.incentive}\nCONSEQUENCES: ${results.consequences}\n\nREFINED POLICY STATEMENT\nPrecise restatement incorporating the analysis.\n\nKEY MODIFICATIONS\nWhat must change and why.\n\nSAFEGUARDS\nMechanisms to prevent gaming.\n\nSUNSET PROVISIONS\nAutomatic review points.\n\nPOLITICAL FEASIBILITY\nCoalition needed, opposition expected.\n\nREFINED SCORECARD\nRe-score 1-10 and explain improvement.`,
+    SYS.dft);
+}
+
+function doImplementation() {
+  runStage("implementation",
+    `REFINED POLICY: ${results.refinement}\nDOMAIN: ${domain}\n\nLEGISLATIVE PATHWAY\nPrimary and secondary legislation required.\n\nIMPLEMENTATION TIMELINE\nPhase 1 (0-6m), Phase 2 (6-18m), Phase 3 (18-36m).\n\nRESOURCE REQUIREMENTS\nCosts, staff, departments.\n\nSTAKEHOLDER MANAGEMENT\nVested interests and how to handle them.\n\nQUICK WINS\nFirst 100 days.\n\nGO/NO-GO TRIGGERS`,
+    SYS.imp);
+}
+
+function doMonitoring() {
+  monitoringData = document.getElementById("monitoring-input")?.value || "";
+  runStage("monitoring",
+    `POLICY: ${policyIdea}\nDOMAIN: ${domain}\nIMPLEMENTATION: ${results.implementation}\n${monitoringData ? `REAL-WORLD DATA: ${monitoringData}\n` : ""}\nKEY PERFORMANCE INDICATORS\nMeasurable KPIs for the incentive.\n\nDATA COLLECTION\nHow measured, who collects, frequency.\n\nREVIEW TRIGGERS\nThresholds for review/modification/cancellation.\n\nMODIFICATION PROTOCOLS\nPartial/full failure responses.\n${monitoringData ? "\nREAL-WORLD ASSESSMENT\nIs it working? Modify or cancel?\n" : ""}\nSUNSET RECOMMENDATION`,
+    SYS.eval);
+}
+
+function resetAll() {
+  policyIdea = ""; domain = ""; currentStage = "input";
+  results = {}; completedStages = []; monitoringData = "";
+  loading = false; incentiveScore = 0; suggestions = null; suggestionLoading = false; streamedStages.clear();
+  document.getElementById("restart-btn").style.display = "none";
+  closeNav();
+  renderStage();
+}
+
+function confirmRestart() {
+  if (!confirm("Start completely over? All analysis will be lost.")) return;
+  resetAll();
+}
+
+function showRestartBtn() {
+  document.getElementById("restart-btn").style.display = "";
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function renderStage() {
+  const meta = STAGES.find(s => s.id === currentStage);
+  document.getElementById("stage-icon").textContent = meta.icon;
+  document.getElementById("stage-title").textContent = meta.title;
+  document.getElementById("stage-num").textContent = meta.label;
+  document.getElementById("stage-desc").textContent = STAGE_DESC[currentStage];
+
+  // Progress
+  const n = completedStages.length;
+  if (n > 0) {
+    document.getElementById("progress-wrap").style.display = "block";
+    document.getElementById("progress-label").textContent = `${n}/6`;
+    document.getElementById("progress-fill").style.width = `${(n/6)*100}%`;
+  }
+
+  renderContent();
+  renderNav();
+}
+
+function renderContent() {
+  const el = document.getElementById("content");
+
+  if (currentStage === "input") {
+    el.innerHTML = `
+      <div class="gap">
+        <div>
+          <label class="field-label">Select Domain</label>
+          <div class="domain-grid">${DOMAINS.map(d => `<button class="domain-btn${d===domain?' active':''}" onclick="selectDomain('${d}')">${d}</button>`).join("")}</div>
+        </div>
+        <div>
+          <label class="field-label">Policy Proposition</label>
+          <textarea id="policy-input" rows="6" placeholder="State your proposed policy or law change in plain language...">${policyIdea}</textarea>
+        </div>
+        <div id="error-box"></div>
+        <button class="primary-btn" onclick="submitPolicy()" ${loading||!policyIdea.trim()||!domain?'disabled':''}>
+          ${loading ? '<span class="spin">⟳</span> PROCESSING…' : '🖖 ENGAGE LOGIC ENGINE →'}
+        </button>
+        <div class="quote-card">
+          <div class="quote-text">"${quote.text}"</div>
+          <div class="quote-attr">— ${quote.attr}</div>
+        </div>
+      </div>`;
+
+    document.getElementById("policy-input")?.addEventListener("input", e => {
+      policyIdea = e.target.value;
+      const btn = el.querySelector(".primary-btn");
+      if (btn) btn.disabled = loading || !policyIdea.trim() || !domain;
+    });
+    return;
+  }
+
+  const nextMap = {
+    incentive:      { label:"AUDIT CONSEQUENCES →",   fn:"doConsequences()" },
+    consequences:   { label:"REFINE POLICY →",        fn:"doRefinement()" },
+    refinement:     { label:"BUILD IMPLEMENTATION →", fn:"doImplementation()" },
+    implementation: { label:"DESIGN MONITORING →",    fn:"doMonitoring()" },
+    monitoring:     { label:null, fn:null },
+  };
+
+  // Block refinement if incentive score < 5
+  const scoreTooLow = incentiveScore > 0 && incentiveScore < 5;
+  if (currentStage === "consequences" && scoreTooLow) {
+    nextMap.consequences = { label:null, fn:null };
+  }
+
+  const next = nextMap[currentStage];
+  const resultText = results[currentStage] || "";
+
+  // Rejection banner shown after consequences if score < 5
+  const rejectionBanner = (currentStage === "consequences" && resultText && scoreTooLow) ? `
+    <div style="padding:20px;background:rgba(180,40,40,0.2);border:2px solid rgba(220,60,60,0.6);border-radius:10px;margin-top:4px">
+      <div style="font-family:'Courier Prime',monospace;font-size:13px;letter-spacing:2px;color:#ff8080;text-transform:uppercase;margin-bottom:10px">
+        🖖 LOGIC VERDICT: POLICY REJECTED
+      </div>
+      <div style="font-size:15px;color:#ffb0b0;line-height:1.7;font-family:Georgia,serif">
+        Incentive alignment score of <strong style="color:#ff6060">${incentiveScore}/10</strong> is below the minimum threshold of 5/10 required to proceed to Policy Refinement.
+        The incentive structure is too flawed to build on. This policy cannot be refined into a workable form — it must be fundamentally redesigned from scratch.
+      </div>
+      <button class="ghost-btn" onclick="resetAll()" style="margin-top:16px;border-color:rgba(220,60,60,0.4);color:#ff8080">← REDESIGN FROM SCRATCH</button>
+    </div>` : "";
+
+  // Score badge shown after incentive analysis
+  const scoreBadge = (currentStage === "incentive" && resultText && incentiveScore > 0) ? `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:${incentiveScore >= 5 ? 'rgba(40,180,80,0.15)' : 'rgba(220,60,60,0.15)'};border:1px solid ${incentiveScore >= 5 ? 'rgba(60,200,80,0.4)' : 'rgba(220,60,60,0.4)'};border-radius:8px">
+      <div style="font-size:32px;font-family:'Courier Prime',monospace;font-weight:700;color:${incentiveScore >= 5 ? '#60e080' : '#ff6060'}">${incentiveScore}<span style="font-size:16px;opacity:0.6">/10</span></div>
+      <div>
+        <div style="font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;color:${incentiveScore >= 5 ? '#60e080' : '#ff6060'};text-transform:uppercase;margin-bottom:4px">Incentive Alignment Score</div>
+        <div style="font-size:13px;color:${incentiveScore >= 5 ? '#a0f0b0' : '#ffaaaa'};font-family:Georgia,serif">${incentiveScore >= 5 ? '✓ Passes threshold — may proceed to consequences audit' : '✗ Below threshold of 5 — policy will be blocked after consequences audit'}</div>
+      </div>
+    </div>` : "";
+
+  // Suggestions panel
+  let suggestionsPanel = "";
+  if (currentStage === "incentive" && resultText) {
+    if (suggestionLoading) {
+      suggestionsPanel = `
+        <div style="padding:18px 20px;background:rgba(212,168,67,0.07);border:1px solid rgba(212,168,67,0.25);border-radius:8px">
+          <div style="font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;color:#d4a843;text-transform:uppercase;margin-bottom:10px">
+            <span class="spin">&#x27F3;</span> &nbsp;GENERATING AMENDMENTS&hellip;
+          </div>
+          <div style="font-size:13px;color:#7080a0;font-family:Georgia,serif">Analysing how to improve incentive alignment&hellip;</div>
+        </div>`;
+    } else if (suggestions) {
+      const amendmentBlocks = [];
+      const parts = suggestions.split(/AMENDMENT\s+(\d+)/i);
+      for (let i = 1; i < parts.length; i += 2) {
+        const num = parseInt(parts[i]);
+        const body = parts[i + 1] || "";
+        const reasonMatch = body.match(/REASON\s*\n([\s\S]+?)(?=REVISED WORDING)/i);
+        const revisedMatch = body.match(/REVISED WORDING\s*\n([\s\S]+?)$/i);
+        const titleMatch = body.match(/^\s*\n?([\s\S]+?)(?=\nREASON)/i);
+        amendmentBlocks.push({
+          num,
+          title: titleMatch ? titleMatch[1].trim() : "",
+          reason: reasonMatch ? reasonMatch[1].trim() : "",
+          revised: revisedMatch ? revisedMatch[1].trim() : "",
+        });
+      }
+      const isBelow = incentiveScore < 5;
+      const hc = isBelow ? "#ff8080" : "#d4a843";
+      const bc = isBelow ? "rgba(220,80,80,0.35)" : "rgba(212,168,67,0.3)";
+      const bg = isBelow ? "rgba(220,60,60,0.08)" : "rgba(212,168,67,0.07)";
+      const ht = isBelow ? "🖖 SUGGESTED AMENDMENTS TO PASS THRESHOLD" : "🖖 SUGGESTED AMENDMENTS TO STRENGTHEN POLICY";
+      const st = isBelow
+        ? `Score is ${incentiveScore}/10. Apply one of these amendments and re-run to attempt to pass the 5/10 threshold.`
+        : `Score is ${incentiveScore}/10. These amendments could push alignment higher while keeping the original intent.`;
+      const cards = amendmentBlocks.map(a => `
+        <div style="background:#1e2438;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;color:${hc};text-transform:uppercase">Amendment ${a.num}</div>
+          <div style="font-size:15px;color:#f0f4ff;font-family:Georgia,serif;line-height:1.6">${a.title.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+          ${a.reason ? `<div style="font-size:13px;color:#8090b0;font-family:Georgia,serif;font-style:italic;line-height:1.5;border-left:3px solid rgba(212,168,67,0.3);padding-left:12px">${a.reason.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>` : ""}
+          ${a.revised ? `
+            <div>
+              <div style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:#5060a0;text-transform:uppercase;margin-bottom:6px">Revised Wording</div>
+              <div style="font-size:13px;color:#c0d0f0;font-family:Georgia,serif;line-height:1.6;background:#161c2e;padding:12px;border-radius:6px;font-style:italic">"${a.revised.slice(0,300).replace(/</g,"&lt;").replace(/>/g,"&gt;")}${a.revised.length>300?"&hellip;":""}"</div>
+            </div>
+            <button class="primary-btn" onclick="applyAmendment(${a.num})" style="padding:13px;font-size:12px;letter-spacing:1px">&#x21BB; APPLY AMENDMENT ${a.num} &amp; RE-RUN</button>` : ""}
+        </div>`).join("");
+      suggestionsPanel = `
+        <div style="padding:18px 20px;background:${bg};border:1px solid ${bc};border-radius:10px;display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div style="font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;color:${hc};text-transform:uppercase;margin-bottom:8px">${ht}</div>
+            <div style="font-size:14px;color:#8090b0;font-family:Georgia,serif">${st}</div>
+          </div>
+          ${cards}
+        </div>`;
+    }
+  }
+
+  el.innerHTML = `
+    <div class="gap">
+      ${currentStage==="incentive" ? `
+        <div class="policy-tag">
+          <div class="policy-tag-domain">${domain.toUpperCase()}</div>
+          <div class="policy-tag-text">"${policyIdea.slice(0,120)}${policyIdea.length>120?"&hellip;":""}"</div>
+        </div>` : ""}
+      <div class="result-text" id="result-display"></div>
+      ${scoreBadge}
+      ${suggestionsPanel}
+      ${rejectionBanner}
+      <div id="error-box"></div>
+      ${resultText && next?.fn ? `<button class="primary-btn" onclick="${next.fn}" ${loading?'disabled':''}>${loading?'<span class="spin">&#x27F3;</span> PROCESSING&hellip;':next.label}</button>` : ""}
+      ${loading && !resultText ? `<button class="primary-btn" disabled><span class="spin">&#x27F3;</span> PROCESSING&hellip;</button>` : ""}
+      ${currentStage==="monitoring" && resultText ? `
+        <div class="section-divider"></div>
+        <label class="field-label" style="color:#d4a843">FEEDBACK LOOP &mdash; REAL-WORLD DATA</label>
+        <textarea id="monitoring-input" rows="4" placeholder="Paste real-world outcome data or statistics...">${monitoringData}</textarea>
+        <button class="primary-btn" onclick="doMonitoring()" ${loading?'disabled':''}>EVALUATE OUTCOMES &rarr;</button>
+        <button class="ghost-btn" onclick="resetAll()">&larr; New Proposition</button>
+      ` : ""}
+    </div>`;
+
+  // Stream the result text
+  if (resultText) streamText(resultText, document.getElementById("result-display"), currentStage);
+}
+
+// Track which stage results have already been streamed so we don't re-stream on re-render
+const streamedStages = new Set();
+
+function streamText(text, el, stageKey) {
+  if (!el) return;
+  // If already streamed this stage result, just display it instantly
+  if (stageKey && streamedStages.has(stageKey)) {
+    el.textContent = text;
+    return;
+  }
+  if (stageKey) streamedStages.add(stageKey);
+  let i = 0;
+  el.textContent = "";
+  const iv = setInterval(() => {
+    if (i < text.length) { el.textContent = text.slice(0, ++i); }
+    else { clearInterval(iv); }
+  }, 5);
+}
+
+function showError(msg) {
+  const box = document.getElementById("error-box");
+  if (box) box.innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
+}
+
+function selectDomain(d) {
+  domain = d;
+  renderContent();
+}
+
+function submitPolicy() {
+  policyIdea = document.getElementById("policy-input")?.value.trim() || policyIdea;
+  if (!policyIdea || !domain) return;
+  doIncentive();
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function renderNav() {
+  const wrap = document.getElementById("nav-items");
+  const blockedStages = (incentiveScore > 0 && incentiveScore < 5)
+    ? ["refinement","implementation","monitoring"]
+    : [];
+  wrap.innerHTML = STAGES.map(stage => {
+    const active = currentStage === stage.id;
+    const complete = completedStages.includes(stage.id);
+    const blocked = blockedStages.includes(stage.id);
+    const accessible = !blocked && (complete || stage.id === "input");
+    return `<div class="nav-item ${active?'active':''} ${complete&&!active&&!blocked?'complete':''} ${(!accessible||blocked)?'locked':''}"
+      onclick="${accessible?`goToStage('${stage.id}')`:''}" >
+      <span class="nav-num">${stage.label}</span>
+      <span style="font-size:17px">${stage.icon}</span>
+      <span class="nav-label">${stage.title}</span>
+      ${blocked ? '<span style="color:#ff6060;font-size:11px;font-family:\'Courier Prime\',monospace">BLOCKED</span>' : ''}
+      ${complete&&!active&&!blocked ? '<span class="nav-check">✓</span>' : ''}
+      ${active ? '<span class="nav-active-badge">ACTIVE</span>' : ''}
+    </div>`;
+  }).join("");
+  document.getElementById("reset-btn").style.display = completedStages.length > 0 ? "block" : "none";
+}
+
+function goToStage(id) {
+  if (completedStages.includes(id) || id === "input") {
+    currentStage = id;
+    closeNav();
+    renderStage();
+  }
+}
+
+function toggleNav() {
+  document.getElementById("overlay").classList.toggle("open");
+  document.getElementById("nav-drawer").classList.toggle("open");
+  renderNav();
+}
+function closeNav() {
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("nav-drawer").classList.remove("open");
+}
+
+// ── PRINT PDF ─────────────────────────────────────────────────────────────────
+function printPDF() {
+  const stageInfo = {
+    input:          { label:"01", title:"Policy Input",         icon:"🖖" },
+    incentive:      { label:"02", title:"Incentive Analysis",   icon:"🎯" },
+    consequences:   { label:"03", title:"Consequences Audit",   icon:"🔍" },
+    refinement:     { label:"04", title:"Policy Refinement",    icon:"⚙️"  },
+    implementation: { label:"05", title:"Implementation Plan",  icon:"📋" },
+    monitoring:     { label:"06", title:"Monitoring Framework", icon:"📊" },
+  };
+
+  const stageOrder = ["incentive","consequences","refinement","implementation","monitoring"];
+  const completed = stageOrder.filter(s => results[s]);
+  if (completed.length === 0) { alert("Nothing to print yet — run at least one stage first."); return; }
+
+  const scoreTooLow = incentiveScore > 0 && incentiveScore < 5;
+  const dateStr = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  let html = `<div class="print-cover">
+    <div class="print-cover-logo">🖖 SPOCK</div>
+    <div class="print-cover-sub">Policy Logic Engine</div>
+    <div class="print-cover-domain">${domain.toUpperCase()}</div>
+    <div class="print-cover-policy">"${policyIdea}"</div>
+    ${incentiveScore > 0 ? `<div class="print-score-badge">INCENTIVE SCORE: ${incentiveScore}/10</div>` : ""}
+    <div class="print-cover-meta">Generated ${dateStr} &nbsp;|&nbsp; ${scoreTooLow ? "POLICY REJECTED — Sections 1–2 only" : `${completed.length} of 5 stages completed`}</div>
+  </div>`;
+
+  completed.forEach(stageId => {
+    const info = stageInfo[stageId];
+    html += `<div class="print-section">
+      <div class="print-section-header">
+        <span class="print-section-num">${info.label}</span>
+        <span class="print-section-title">${info.title}</span>
+      </div>
+      <div class="print-rule"></div>
+      <div class="print-body">${results[stageId].replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>`;
+  });
+
+  if (scoreTooLow) {
+    html += `<div class="print-rejected">
+      <div class="print-rejected-title">🖖 Logic Verdict: Policy Rejected</div>
+      <div class="print-rejected-body">Incentive alignment score of ${incentiveScore}/10 is below the minimum threshold of 5/10. This policy cannot proceed to refinement — it must be fundamentally redesigned from scratch.</div>
+    </div>`;
+  }
+
+  document.getElementById("print-output").innerHTML = html;
+  window.print();
+  // Clean up after print dialog closes
+  setTimeout(() => { document.getElementById("print-output").innerHTML = ""; }, 2000);
+}
+</script>
+
+<div id="print-output"></div>
+</body>
+</html>
