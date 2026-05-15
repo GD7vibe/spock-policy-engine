@@ -320,7 +320,7 @@ CRITICAL SCORING SCALE — apply this precisely:
 7-8: Good. Incentives broadly aligned, minor weaknesses only.
 9-10: Excellent. Near-perfect alignment, extremely rare.
 Most sensible policies from competent governments score 5-7. Reserve sub-5 scores only for policies that are genuinely perverse or backwards. Any policy with a logical incentive mechanism pointing in the right direction must score at least 5.`,
-  sys:  `You are a systems thinker specialising in second and third-order policy effects. Rigorous, direct. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Cut ruthlessly.`,
+  sys:  `You are a systems thinker specialising in second and third-order policy effects. Rigorous, direct. CAPITALISED plain text headers only. No markdown. Your entire response must be under 400 words. Maximum 2 sentences per section. Cut brutally — no elaboration.`,
   dft:  `You are a senior policy drafter. Direct and practical. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. No padding.`,
   imp:  `You are a government implementation specialist. Concrete, timeline-specific. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Bullet points where it saves words.`,
   eval: `You are a policy evaluation expert specialising in evidence-based governance. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Numbers and specifics only, no waffle.`,
@@ -378,7 +378,7 @@ async function callClaude(userPrompt, systemPrompt) {
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: [{ role:"user", content: userPrompt }],
     }),
@@ -415,6 +415,7 @@ async function runStage(stageId, userPrompt, sysPrompt, extraCompleted = []) {
     }
     completedStages = [...new Set([...completedStages, ...extraCompleted, stageId])];
     currentStage = stageId;
+    loading = false;
     showRestartBtn();
     renderStage();
     document.getElementById("top").scrollIntoView({ behavior:"smooth" });
@@ -496,6 +497,7 @@ function doIncentive() {
 }
 
 function doConsequences() {
+  if (suggestionLoading) { suggestionLoading = false; } // cancel suggestions if user proceeds
   runStage("consequences",
     `POLICY: ${policyIdea}\nDOMAIN: ${domain}\nINCENTIVE ANALYSIS: ${results.incentive}\n\nSECOND-ORDER EFFECTS\nWhat happens after actors respond?\n\nGAMING AND EXPLOITATION VECTORS\nHow will rational actors game this?\n\nSYSTEMIC RISKS\nMarket distortions, bureaucratic capture, dependency effects.\n\nDISTRIBUTIONAL IMPACTS\nWho bears unexpected cost? Who benefits?\n\nSEVERITY RATING\nRate each LOW/MEDIUM/HIGH/CRITICAL. Identify the single most dangerous.`,
     SYS.sys);
