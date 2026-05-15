@@ -334,7 +334,8 @@ let domain = "";
 let policyIdea = "";
 let monitoringData = "";
 let loading = false;
-let incentiveScore = 0; // extracted from incentive analysis
+let incentiveScore = 0;
+let cachedStageHTML = {}; // stores final rendered HTML per stage so navigation never re-renders
 
 function extractScore(text) {
   // Look for patterns like "Score: 4", "6/10", "score of 7", "3 out of 10"
@@ -521,7 +522,7 @@ function doMonitoring() {
 function resetAll() {
   policyIdea = ""; domain = ""; currentStage = "input";
   results = {}; completedStages = []; monitoringData = "";
-  loading = false; incentiveScore = 0; suggestions = null; suggestionLoading = false; streamedStages.clear();
+  loading = false; incentiveScore = 0; suggestions = null; suggestionLoading = false; streamedStages.clear(); cachedStageHTML = {};
   document.getElementById("restart-btn").style.display = "none";
   closeNav();
   renderStage();
@@ -588,6 +589,12 @@ function renderSidebarNav() {
 
 function renderContent() {
   const el = document.getElementById("content");
+
+  // If this is a completed stage with cached HTML, restore it instantly — no re-render
+  if (currentStage !== "input" && cachedStageHTML[currentStage] && !loading && !suggestionLoading) {
+    el.innerHTML = cachedStageHTML[currentStage];
+    return;
+  }
 
   if (currentStage === "input") {
     el.innerHTML = `
@@ -799,8 +806,12 @@ function streamText(text, el, stageKey) {
     else {
       clearInterval(activeStreamInterval);
       activeStreamInterval = null;
-      // Only mark as streamed after it actually completes
       if (stageKey) streamedStages.add(stageKey);
+      // Cache full rendered stage HTML so back-navigation is instant
+      const contentEl = document.getElementById("content");
+      if (stageKey && stageKey !== "input" && contentEl) {
+        cachedStageHTML[stageKey] = contentEl.innerHTML;
+      }
     }
   }, 5);
 }
