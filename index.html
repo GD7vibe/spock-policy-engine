@@ -310,7 +310,15 @@ const QUOTES = [
 ];
 
 const SYS = {
-  econ: `You are a rigorous political economist applying "You get what you incentivise." Direct, analytical, non-ideological. Never sugarcoat. CAPITALISED plain text section headers only. No markdown symbols. Be concise — your entire response must be under 500 words. Every word must earn its place.`,
+  econ: `You are a rigorous political economist applying "You get what you incentivise." Direct, analytical, non-ideological. CAPITALISED plain text section headers only. No markdown symbols. Be concise — your entire response must be under 500 words. Every word must earn its place.
+
+CRITICAL SCORING SCALE — apply this precisely:
+1-2: Actively counterproductive. Incentives cause the opposite of the stated goal.
+3-4: Seriously flawed. Major perverse incentives that will significantly undermine the policy.
+5-6: Average. Core incentive direction is correct but with meaningful gaps a competent government could address.
+7-8: Good. Incentives broadly aligned, minor weaknesses only.
+9-10: Excellent. Near-perfect alignment, extremely rare.
+Most sensible policies from competent governments score 5-7. Reserve sub-5 scores only for policies that are genuinely perverse or backwards. Any policy with a logical incentive mechanism pointing in the right direction must score at least 5.`,
   sys:  `You are a systems thinker specialising in second and third-order policy effects. Rigorous, direct. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Cut ruthlessly.`,
   dft:  `You are a senior policy drafter. Direct and practical. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. No padding.`,
   imp:  `You are a government implementation specialist. Concrete, timeline-specific. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Bullet points where it saves words.`,
@@ -447,7 +455,7 @@ The amended policy proposition as it would read after this change is applied (fu
 Keep each amendment focused and actionable. Do not number sections beyond the three amendments. Plain text only, no markdown.`;
 
     const result = await callClaude(prompt,
-      `You are a policy amendment specialist. Suggest precise, targeted improvements to fix incentive problems. Stay within the original intent. Plain text only, use the exact headers specified. Each amendment must be brief — the entire response under 600 words total.`
+      `You are a policy amendment specialist. Suggest precise, targeted improvements to fix incentive problems. Stay within the original intent. Plain text only, use the exact headers specified. Each amendment must be brief — the entire response under 600 words total. A policy scoring 5 or above is workable — amendments should strengthen it, not overhaul it. Only policies scoring 4 or below need fundamental rethinking.`
     );
     suggestions = result;
   } catch(e) {
