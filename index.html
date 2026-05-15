@@ -175,28 +175,6 @@
 </head>
 <body>
 
-<!-- API KEY SCREEN -->
-<div id="key-screen" class="key-screen">
-  <div style="text-align:center">
-    <div style="font-size:52px;margin-bottom:12px">🖖</div>
-    <div style="font-family:'Courier Prime',monospace;font-weight:700;font-size:30px;letter-spacing:7px;color:#d4a843">SPOCK</div>
-    <div style="font-family:'Courier Prime',monospace;font-size:10px;color:#5060a0;letter-spacing:2px;margin-top:4px">POLICY LOGIC ENGINE</div>
-  </div>
-  <div class="key-card">
-    <div class="key-card-title">Enter your Anthropic API Key</div>
-    <div class="key-card-desc">
-      Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys.<br>
-      Your key is saved in your browser only — never sent anywhere except directly to Anthropic.
-    </div>
-    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." onkeydown="if(event.key==='Enter')saveKey()" />
-    <button class="primary-btn" onclick="saveKey()">🖖 ENGAGE</button>
-  </div>
-  <div class="quote-card" style="width:100%">
-    <div class="quote-text" id="key-screen-quote"></div>
-    <div class="quote-attr" id="key-screen-attr"></div>
-  </div>
-</div>
-
 <!-- MAIN APP -->
 <div id="main-app" class="app" style="display:none">
 
@@ -216,7 +194,7 @@
       </div>
       <button class="icon-btn nav-toggle-btn" onclick="toggleNav()">☰</button>
       <button class="icon-btn no-print" id="restart-btn" onclick="confirmRestart()" title="Start over" style="display:none;color:#ff8080;border-color:rgba(220,80,80,0.4)">↺ NEW</button>
-      <button class="icon-btn" onclick="changeKey()" title="Change API key">🔑</button>
+
       <button class="icon-btn no-print" onclick="printPDF()" title="Print / Save as PDF" style="background:linear-gradient(135deg,#d4a843,#b8862a);color:#111;font-weight:700">⎙ PDF</button>
     </div>
   </div>
@@ -340,7 +318,7 @@ const SYS = {
 };
 
 // State
-let apiKey = localStorage.getItem("spock_key") || "";
+let apiKey = "server"; // Key handled server-side via Vercel env
 let currentStage = "input";
 let results = {};
 let completedStages = [];
@@ -375,30 +353,12 @@ const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 document.getElementById("key-screen-quote").textContent = `"${quote.text}"`;
 document.getElementById("key-screen-attr").textContent = `— ${quote.attr}`;
 
-if (apiKey) showApp();
-else document.getElementById("key-screen").style.display = "flex";
+showApp();
 
-function saveKey() {
-  const k = document.getElementById("api-key-input").value.trim();
-  if (!k) return;
-  apiKey = k;
-  localStorage.setItem("spock_key", k);
-  showApp();
-}
 
-function changeKey() {
-  localStorage.removeItem("spock_key");
-  apiKey = "";
-  document.getElementById("main-app").style.display = "none";
-  document.getElementById("key-screen").style.display = "flex";
-  document.getElementById("api-key-input").value = "";
-}
 
 function showApp() {
-  document.getElementById("key-screen").style.display = "none";
-  document.getElementById("main-app").style.removeProperty("display");
   document.getElementById("main-app").style.setProperty("display", "flex", "important");
-  // Populate sidebar quote
   document.getElementById("sidebar-quote-text").textContent = '"' + quote.text + '"';
   document.getElementById("sidebar-quote-attr").textContent = "— " + quote.attr;
   renderStage();
@@ -406,13 +366,10 @@ function showApp() {
 
 // ── API CALL ──────────────────────────────────────────────────────────────────
 async function callClaude(userPrompt, systemPrompt) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("/api/proxy", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
