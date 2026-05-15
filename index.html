@@ -244,7 +244,7 @@
   <button class="ghost-btn" id="reset-btn" style="display:none;margin-top:16px" onclick="resetAll()">← New Proposition</button>
 </div>
 
-<script>
+<script defer>
 const STAGES = [
   { id:"input",          label:"01", title:"Policy Input",         icon:"🖖" },
   { id:"incentive",      label:"02", title:"Incentive Analysis",   icon:"🎯" },
@@ -348,10 +348,7 @@ function extractScore(text) {
   return null;
 }
 const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-
-// Init
-document.getElementById("key-screen-quote").textContent = `"${quote.text}"`;
-// App initialised at end of script
+let quoteIdx = Math.floor(Math.random() * QUOTES.length);
 
 
 
@@ -911,8 +908,12 @@ function printPDF() {
   setTimeout(() => { document.getElementById("print-output").innerHTML = ""; }, 2000);
 }
 
-// Start the app
-showApp();
+// Start the app once DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", showApp);
+} else {
+  showApp();
+}
 </script>
 
 <div id="print-output"></div>
