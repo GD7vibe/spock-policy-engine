@@ -882,12 +882,11 @@ function closeNav() {
 // ── PRINT PDF ─────────────────────────────────────────────────────────────────
 function printPDF() {
   const stageInfo = {
-    input:          { label:"01", title:"Policy Input",         icon:"🖖" },
-    incentive:      { label:"02", title:"Incentive Analysis",   icon:"🎯" },
-    consequences:   { label:"03", title:"Consequences Audit",   icon:"🔍" },
-    refinement:     { label:"04", title:"Policy Refinement",    icon:"⚙️"  },
-    implementation: { label:"05", title:"Implementation Plan",  icon:"📋" },
-    monitoring:     { label:"06", title:"Monitoring Framework", icon:"📊" },
+    incentive:      { label:"02", title:"Incentive Analysis"   },
+    consequences:   { label:"03", title:"Consequences Audit"   },
+    refinement:     { label:"04", title:"Policy Refinement"    },
+    implementation: { label:"05", title:"Implementation Plan"  },
+    monitoring:     { label:"06", title:"Monitoring Framework" },
   };
 
   const stageOrder = ["incentive","consequences","refinement","implementation","monitoring"];
@@ -895,40 +894,56 @@ function printPDF() {
   if (completed.length === 0) { alert("Nothing to print yet — run at least one stage first."); return; }
 
   const scoreTooLow = incentiveScore > 0 && incentiveScore < 5;
-  const dateStr = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+  const dateStr = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
 
-  let html = `<div class="print-cover">
-    <div class="print-cover-logo">🖖 SPOCK</div>
-    <div class="print-cover-sub">Policy Logic Engine</div>
-    <div class="print-cover-domain">${domain.toUpperCase()}</div>
-    <div class="print-cover-policy">"${policyIdea}"</div>
-    ${incentiveScore > 0 ? `<div class="print-score-badge">INCENTIVE SCORE: ${incentiveScore}/10</div>` : ""}
-    <div class="print-cover-meta">Generated ${dateStr} &nbsp;|&nbsp; ${scoreTooLow ? "POLICY REJECTED — Sections 1–2 only" : `${completed.length} of 5 stages completed`}</div>
+  let body = "";
+
+  // Slim header line
+  body += `<div style="font-family:'Courier Prime',monospace;font-size:10px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #ddd">
+    SPOCK &nbsp;·&nbsp; ${domain} &nbsp;·&nbsp; ${dateStr}${incentiveScore > 0 ? " &nbsp;·&nbsp; Incentive Score: " + incentiveScore + "/10" : ""}
   </div>`;
 
+  // Policy proposition
+  body += `<div style="font-family:'Courier Prime',monospace;font-size:10px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Policy Proposition</div>
+  <div style="font-style:italic;font-size:13px;color:#333;margin-bottom:28px;padding:12px 16px;border-left:3px solid #b8862a;">"${policyIdea}"</div>`;
+
+  // Each completed section
   completed.forEach(stageId => {
     const info = stageInfo[stageId];
-    html += `<div class="print-section">
-      <div class="print-section-header">
-        <span class="print-section-num">${info.label}</span>
-        <span class="print-section-title">${info.title}</span>
+    body += `<div style="margin-bottom:32px;page-break-inside:avoid">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
+        <span style="font-family:'Courier Prime',monospace;font-size:10px;color:#b8862a;letter-spacing:2px">${info.label}</span>
+        <span style="font-family:'Courier Prime',monospace;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a1f2e">${info.title}</span>
       </div>
-      <div class="print-rule"></div>
-      <div class="print-body">${results[stageId].replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="height:2px;background:#b8862a;width:36px;margin:6px 0 14px"></div>
+      <div style="font-size:11pt;line-height:1.85;color:#111;white-space:pre-wrap;font-family:Georgia,serif">${results[stageId].replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
     </div>`;
   });
 
   if (scoreTooLow) {
-    html += `<div class="print-rejected">
-      <div class="print-rejected-title">🖖 Logic Verdict: Policy Rejected</div>
-      <div class="print-rejected-body">Incentive alignment score of ${incentiveScore}/10 is below the minimum threshold of 5/10. This policy cannot proceed to refinement — it must be fundamentally redesigned from scratch.</div>
+    body += `<div style="margin-top:24px;padding:18px 22px;border:2px solid #cc3333;border-radius:4px;page-break-inside:avoid">
+      <div style="font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;color:#cc3333;text-transform:uppercase;margin-bottom:8px">🖖 Logic Verdict: Policy Rejected</div>
+      <div style="font-size:11pt;color:#661111;line-height:1.7">Incentive alignment score of ${incentiveScore}/10 is below the minimum threshold of 5/10. This policy cannot proceed to refinement — it must be fundamentally redesigned from scratch.</div>
     </div>`;
   }
 
-  document.getElementById("print-output").innerHTML = html;
-  window.print();
-  // Clean up after print dialog closes
-  setTimeout(() => { document.getElementById("print-output").innerHTML = ""; }, 2000);
+  // Open a clean new window and print from it
+  const win = window.open("", "_blank", "width=800,height=600");
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>SPOCK — ${domain}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Georgia, serif; color: #111; background: #fff; padding: 40px; max-width: 800px; margin: 0 auto; }
+      @media print {
+        body { padding: 20px; }
+        @page { margin: 1.5cm; }
+      }
+    </style>
+  </head><body>${body}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 800);
 }
 
 // Start the app once DOM is ready
