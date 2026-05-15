@@ -76,8 +76,9 @@
 
   /* FORM ELEMENTS */
   .field-label { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #a0b0d0; display: block; margin-bottom: 10px; }
-  .domain-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
-  .domain-btn { padding: 10px 14px; font-size: 12px; font-family: 'Courier Prime', monospace; letter-spacing: 1px; text-transform: uppercase; background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 6px; color: #c0d0f0; cursor: pointer; transition: all 0.15s; }
+  .domain-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 4px; }
+  @media (min-width: 900px) { .domain-grid { grid-template-columns: repeat(4, 1fr); } }
+  .domain-btn { padding: 10px 8px; font-size: 12px; font-family: 'Courier Prime', monospace; letter-spacing: 1px; text-transform: uppercase; background: #252b3d; border: 1px solid rgba(212,168,67,0.3); border-radius: 6px; color: #c0d0f0; cursor: pointer; transition: all 0.15s; width: 100%; text-align: center; }
   .domain-btn:hover { background: #2e3550; border: 2px solid #d4a843; }
   .domain-btn.active { background: linear-gradient(135deg, #d4a843, #b8862a); border: none; color: #111; font-weight: 700; }
   textarea, input[type=password] { width: 100%; padding: 14px; background: #1e2438; border: 1px solid rgba(212,168,67,0.3); border-radius: 8px; color: #ffffff; font-size: 16px; line-height: 1.7; font-family: Georgia, serif; resize: vertical; outline: none; }
