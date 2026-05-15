@@ -783,8 +783,12 @@ function renderContent() {
       ` : ""}
     </div>`;
 
-  // Stream the result text
-  if (resultText) streamText(resultText, document.getElementById("result-display"), currentStage);
+  // Stream or instantly display result text
+  const rdEl = document.getElementById("result-display");
+  if (resultText && rdEl) {
+    // If already streamed, just show instantly (e.g. during suggestion re-render)
+    streamText(resultText, rdEl, currentStage);
+  }
 }
 
 // ── QUOTE ROTATOR ─────────────────────────────────────────────────────────────
@@ -816,6 +820,7 @@ function stopQuoteRotator() {
 
 // Track which stage results have already been streamed so we don't re-stream on re-render
 const streamedStages = new Set();
+let activeStreamInterval = null;
 
 function streamText(text, el, stageKey) {
   if (!el) return;
@@ -824,12 +829,19 @@ function streamText(text, el, stageKey) {
     el.textContent = text;
     return;
   }
-  if (stageKey) streamedStages.add(stageKey);
+  // Cancel any existing stream
+  if (activeStreamInterval) { clearInterval(activeStreamInterval); activeStreamInterval = null; }
   let i = 0;
   el.textContent = "";
-  const iv = setInterval(() => {
+  activeStreamInterval = setInterval(() => {
+    if (!el.isConnected) { clearInterval(activeStreamInterval); return; }
     if (i < text.length) { el.textContent = text.slice(0, ++i); }
-    else { clearInterval(iv); }
+    else {
+      clearInterval(activeStreamInterval);
+      activeStreamInterval = null;
+      // Only mark as streamed after it actually completes
+      if (stageKey) streamedStages.add(stageKey);
+    }
   }, 5);
 }
 
