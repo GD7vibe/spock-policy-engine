@@ -176,7 +176,7 @@
 <body>
 
 <!-- MAIN APP -->
-<div id="main-app" class="app" style="display:none">
+<div id="main-app" class="app" style="display:flex">
 
   <!-- HEADER — full width -->
   <div class="header" id="top" style="position:sticky;top:0;z-index:100;background:#1a1f2e;border-bottom:1px solid rgba(212,168,67,0.3);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;">
@@ -351,9 +351,7 @@ const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
 // Init
 document.getElementById("key-screen-quote").textContent = `"${quote.text}"`;
-document.getElementById("key-screen-attr").textContent = `— ${quote.attr}`;
-
-showApp();
+// App initialised at end of script
 
 
 
@@ -912,6 +910,9 @@ function printPDF() {
   // Clean up after print dialog closes
   setTimeout(() => { document.getElementById("print-output").innerHTML = ""; }, 2000);
 }
+
+// Start the app
+showApp();
 </script>
 
 <div id="print-output"></div>
