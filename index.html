@@ -574,14 +574,14 @@ function renderSidebarNav() {
     const complete = completedStages.includes(stage.id);
     const blocked = blockedStages.includes(stage.id);
     const accessible = !blocked && (complete || stage.id === "input");
-    return `<div class="sidebar-nav-item ${active?"active":""} ${complete&&!active&&!blocked?"complete":""} ${(!accessible||blocked)?"locked":""}"
-      onclick="${accessible ? `goToStage("${stage.id}")` : ""}">
+    const cls = ["sidebar-nav-item", active?"active":"", complete&&!active&&!blocked?"complete":"", blocked?"locked":""].filter(Boolean).join(" ");
+    return `<div class="${cls}" onclick="${accessible ? 'goToStage(\'' + stage.id + '\')' : ''}" style="cursor:${accessible?'pointer':'default'}">
       <span class="sidebar-nav-num">${stage.label}</span>
       <span style="font-size:15px">${stage.icon}</span>
       <span class="sidebar-nav-label">${stage.title}</span>
-      ${blocked ? "<span style='color:#ff6060;font-size:9px;font-family:Courier Prime,monospace'>BLOCKED</span>" : ""}
-      ${complete&&!active&&!blocked ? "<span style='color:#d4a843;font-size:13px'>✓</span>" : ""}
-      ${active ? "<span style='color:#d4a843;font-size:9px;font-family:Courier Prime,monospace'>●</span>" : ""}
+      ${blocked ? '<span style="color:#ff6060;font-size:9px;font-family:monospace">BLOCKED</span>' : ""}
+      ${complete&&!active&&!blocked ? '<span style="color:#d4a843;font-size:13px">✓</span>' : ""}
+      ${active ? '<span style="color:#d4a843;font-size:9px;font-family:monospace">●</span>' : ""}
     </div>`;
   }).join("");
 }
@@ -815,10 +815,97 @@ function selectDomain(d) {
   renderContent();
 }
 
+
+// ── STAR TREK FANFARE ─────────────────────────────────────────────────────────
+let hasPlayedFanfare = false;
+
+function playStarTrekFanfare() {
+  if (hasPlayedFanfare) return;
+  hasPlayedFanfare = true;
+  
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playNote(freq, startTime, duration, volume = 0.3) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const osc2 = ctx.createOscillator(); // second oscillator for richness
+      const gain2 = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      osc.type = "sine";
+      osc2.type = "triangle";
+      osc.frequency.setValueAtTime(freq, startTime);
+      osc2.frequency.setValueAtTime(freq * 1.005, startTime); // slight detune for warmth
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+      gain.gain.setValueAtTime(volume, startTime + duration - 0.08);
+      gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+      gain2.gain.setValueAtTime(0, startTime);
+      gain2.gain.linearRampToValueAtTime(volume * 0.4, startTime + 0.02);
+      gain2.gain.setValueAtTime(volume * 0.4, startTime + duration - 0.08);
+      gain2.gain.linearRampToValueAtTime(0, startTime + duration);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+      osc2.start(startTime);
+      osc2.stop(startTime + duration);
+    }
+
+    function playPercussion(startTime) {
+      // Snare-like hit
+      const bufSize = ctx.sampleRate * 0.1;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+      }
+      const src = ctx.createBufferSource();
+      const g = ctx.createGain();
+      src.buffer = buf;
+      src.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.15, startTime);
+      g.gain.linearRampToValueAtTime(0, startTime + 0.1);
+      src.start(startTime);
+    }
+
+    const t = ctx.currentTime + 0.1;
+
+    // The classic Star Trek Original Series fanfare
+    // G  A  B  G  B  D5
+    const notes = [
+      { freq: 392.0, start: 0.0,  dur: 0.18 }, // G4
+      { freq: 440.0, start: 0.18, dur: 0.18 }, // A4
+      { freq: 493.9, start: 0.36, dur: 0.18 }, // B4
+      { freq: 392.0, start: 0.54, dur: 0.22 }, // G4
+      { freq: 493.9, start: 0.76, dur: 0.22 }, // B4
+      { freq: 587.3, start: 0.98, dur: 0.55 }, // D5 — held
+    ];
+
+    notes.forEach(n => playNote(n.freq, t + n.start, n.dur, 0.25));
+    
+    // Percussion hits
+    playPercussion(t + 0.0);
+    playPercussion(t + 0.54);
+    playPercussion(t + 0.98);
+
+  } catch(e) {
+    // Audio not available — silently fail
+    console.log("Audio unavailable:", e.message);
+  }
+}
 function submitPolicy() {
   policyIdea = document.getElementById("policy-input")?.value.trim() || policyIdea;
   if (!policyIdea || !domain) return;
   stopQuoteRotator();
+  playStarTrekFanfare();
   doIncentive();
 }
 
@@ -833,12 +920,12 @@ function renderNav() {
     const complete = completedStages.includes(stage.id);
     const blocked = blockedStages.includes(stage.id);
     const accessible = !blocked && (complete || stage.id === "input");
-    return `<div class="nav-item ${active?'active':''} ${complete&&!active&&!blocked?'complete':''} ${(!accessible||blocked)?'locked':''}"
-      onclick="${accessible?`goToStage('${stage.id}')`:''}" >
+    const mcls = ["nav-item", active?"active":"", complete&&!active&&!blocked?"complete":"", blocked?"locked":""].filter(Boolean).join(" ");
+    return `<div class="${mcls}" onclick="${accessible ? 'goToStage(\'' + stage.id + '\')' : ''}" style="cursor:${accessible?'pointer':'default'}">
       <span class="nav-num">${stage.label}</span>
       <span style="font-size:17px">${stage.icon}</span>
       <span class="nav-label">${stage.title}</span>
-      ${blocked ? '<span style="color:#ff6060;font-size:11px;font-family:\'Courier Prime\',monospace">BLOCKED</span>' : ''}
+      ${blocked ? '<span style="color:#ff6060;font-size:11px;font-family:monospace">BLOCKED</span>' : ''}
       ${complete&&!active&&!blocked ? '<span class="nav-check">✓</span>' : ''}
       ${active ? '<span class="nav-active-badge">ACTIVE</span>' : ''}
     </div>`;
