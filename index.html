@@ -311,7 +311,7 @@ const QUOTES = [
 ];
 
 const SYS = {
-  econ: `You are a rigorous political economist applying "You get what you incentivise." Direct, analytical, non-ideological. CAPITALISED plain text section headers only. No markdown symbols. Be concise — your entire response must be under 500 words. Every word must earn its place.
+  econ: `You are a rigorous political economist applying "You get what you incentivise." CAPITALISED plain text headers only. No markdown. HARD LIMIT: 400 words total. Stop writing at 400 words.
 
 CRITICAL SCORING SCALE — apply this precisely:
 1-2: Actively counterproductive. Incentives cause the opposite of the stated goal.
@@ -320,10 +320,10 @@ CRITICAL SCORING SCALE — apply this precisely:
 7-8: Good. Incentives broadly aligned, minor weaknesses only.
 9-10: Excellent. Near-perfect alignment, extremely rare.
 Most sensible policies from competent governments score 5-7. Reserve sub-5 scores only for policies that are genuinely perverse or backwards. Any policy with a logical incentive mechanism pointing in the right direction must score at least 5.`,
-  sys:  `You are a systems thinker specialising in second and third-order policy effects. Rigorous, direct. CAPITALISED plain text headers only. No markdown. Your entire response must be under 400 words. Maximum 2 sentences per section. Cut brutally — no elaboration.`,
-  dft:  `You are a senior policy drafter. Direct and practical. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. No padding.`,
-  imp:  `You are a government implementation specialist. Concrete, timeline-specific. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Bullet points where it saves words.`,
-  eval: `You are a policy evaluation expert specialising in evidence-based governance. CAPITALISED plain text headers only. No markdown. Be concise — your entire response must be under 500 words. Numbers and specifics only, no waffle.`,
+  sys:  `You are a systems thinker specialising in second and third-order policy effects. CAPITALISED plain text headers only. No markdown. HARD LIMIT: 400 words total. Max 2 sentences per section. Stop at 400 words.`,
+  dft:  `You are a senior policy drafter. CAPITALISED plain text headers only. No markdown. HARD LIMIT: 400 words total. One short paragraph per section. Stop at 400 words.`,
+  imp:  `You are a government implementation specialist. CAPITALISED plain text headers only. No markdown. HARD LIMIT: 400 words total. Bullet points only, max 3 per section. Stop at 400 words.`,
+  eval: `You are a policy evaluation expert. CAPITALISED plain text headers only. No markdown. HARD LIMIT: 400 words total. Numbers and specifics only. Stop at 400 words.`,
 };
 
 // State
@@ -499,7 +499,7 @@ function doIncentive() {
 function doConsequences() {
   if (suggestionLoading) { suggestionLoading = false; } // cancel suggestions if user proceeds
   runStage("consequences",
-    `POLICY: ${policyIdea}\nDOMAIN: ${domain}\nINCENTIVE ANALYSIS: ${results.incentive}\n\nSECOND-ORDER EFFECTS\nWhat happens after actors respond?\n\nGAMING AND EXPLOITATION VECTORS\nHow will rational actors game this?\n\nSYSTEMIC RISKS\nMarket distortions, bureaucratic capture, dependency effects.\n\nDISTRIBUTIONAL IMPACTS\nWho bears unexpected cost? Who benefits?\n\nSEVERITY RATING\nRate each LOW/MEDIUM/HIGH/CRITICAL. Identify the single most dangerous.`,
+    `POLICY: ${policyIdea}\nDOMAIN: ${domain}\nINCENTIVE ANALYSIS: ${results.incentive}\n\nSTRICT 400 WORD LIMIT. Max 2 sentences per section.\n\nSECOND-ORDER EFFECTS\nTop 2 effects only.\n\nGAMING VECTORS\nTop 2 gaming risks only.\n\nSYSTEMIC RISKS\nTop 2 risks only.\n\nDISTRIBUTIONAL IMPACTS\nWinners and losers, one sentence each.\n\nSEVERITY RATING\nRate each LOW/MEDIUM/HIGH/CRITICAL. Single most dangerous in one sentence.`,
     SYS.sys);
 }
 
@@ -511,7 +511,7 @@ function doRefinement() {
 
 function doImplementation() {
   runStage("implementation",
-    `REFINED POLICY: ${results.refinement}\nDOMAIN: ${domain}\n\nLEGISLATIVE PATHWAY\nPrimary and secondary legislation required.\n\nIMPLEMENTATION TIMELINE\nPhase 1 (0-6m), Phase 2 (6-18m), Phase 3 (18-36m).\n\nRESOURCE REQUIREMENTS\nCosts, staff, departments.\n\nSTAKEHOLDER MANAGEMENT\nVested interests and how to handle them.\n\nQUICK WINS\nFirst 100 days.\n\nGO/NO-GO TRIGGERS`,
+    `REFINED POLICY: ${results.refinement}\nDOMAIN: ${domain}\n\nSTRICT 400 WORD LIMIT. Use bullet points. Max 3 bullets per section.\n\nLEGISLATIVE PATHWAY\nKey legislation only.\n\nIMPLEMENTATION TIMELINE\nPhase 1 (0-6m), Phase 2 (6-18m), Phase 3 (18-36m). One line each.\n\nRESOURCE REQUIREMENTS\nKey costs and departments only.\n\nSTAKEHOLDER MANAGEMENT\nTop 3 vested interests only.\n\nQUICK WINS\nTop 3 actions, first 100 days.\n\nGO/NO-GO TRIGGERS\nTop 2 triggers only.`,
     SYS.imp);
 }
 
