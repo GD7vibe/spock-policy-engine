@@ -470,24 +470,44 @@ Keep each amendment focused and actionable. Do not number sections beyond the th
 }
 
 function applyAmendment(n) {
-  // Find the REVISED WORDING for amendment n and apply it to policyIdea
   if (!suggestions) return;
+
+  // Split on AMENDMENT headers to get each block
   const blocks = suggestions.split(/AMENDMENT\s+\d+/i).filter(b => b.trim());
   const block = blocks[n - 1];
-  if (!block) return;
-  const match = block.match(/REVISED WORDING\s*\n([\s\S]+?)(?=AMENDMENT|\Z|$)/i);
-  if (match) {
-    const revised = match[1].trim();
-    if (revised) {
-      policyIdea = revised;
-      // Reset and re-run from scratch with new policy
-      results = {}; completedStages = []; incentiveScore = 0; suggestions = null; streamedStages.clear();
-      currentStage = "input";
-      renderStage();
-      // Auto-submit
-      setTimeout(() => doIncentive(), 300);
+  if (!block) { alert("Could not find amendment " + n); return; }
+
+  // Extract REVISED WORDING — everything after that header to end of block
+  const match = block.match(/REVISED WORDING[:\s]*\n([\s\S]+?)(?:\n\nAMENDMENT|$)/i);
+  const revised = match ? match[1].trim() : null;
+
+  if (!revised) {
+    // Fallback: just use the whole block text as the new policy idea
+    const fallback = block.replace(/REASON[:\s]*[\s\S]*?(?=REVISED WORDING)/i, "")
+                          .replace(/REVISED WORDING[:\s]*/i, "").trim();
+    if (fallback) {
+      policyIdea = fallback.split("\n")[0].trim(); // use first line
+    } else {
+      alert("Could not extract revised wording from amendment " + n);
+      return;
     }
+  } else {
+    policyIdea = revised;
   }
+
+  // Full reset — clear cache so old HTML doesn't override new result
+  results = {};
+  completedStages = [];
+  incentiveScore = 0;
+  suggestions = null;
+  suggestionLoading = false;
+  streamedStages.clear();
+  cachedStageHTML = {};
+  currentStage = "input";
+  renderStage();
+
+  // Brief delay then auto-run
+  setTimeout(() => doIncentive(), 200);
 }
 
 // ── PROMPTS ───────────────────────────────────────────────────────────────────
@@ -717,7 +737,7 @@ function renderContent() {
           ${a.revised ? `
             <div>
               <div style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:#5060a0;text-transform:uppercase;margin-bottom:6px">Revised Wording</div>
-              <div style="font-size:13px;color:#c0d0f0;font-family:Georgia,serif;line-height:1.6;background:#161c2e;padding:12px;border-radius:6px;font-style:italic">"${a.revised.slice(0,300).replace(/</g,"&lt;").replace(/>/g,"&gt;")}${a.revised.length>300?"&hellip;":""}"</div>
+              <div style="font-size:13px;color:#c0d0f0;font-family:Georgia,serif;line-height:1.6;background:#161c2e;padding:12px;border-radius:6px;font-style:italic">"${a.revised.replace(/</g,"&lt;").replace(/>/g,"&gt;")}"</div>
             </div>
             <button class="primary-btn" onclick="applyAmendment(${a.num})" style="padding:13px;font-size:12px;letter-spacing:1px">&#x21BB; APPLY AMENDMENT ${a.num} &amp; RE-RUN</button>` : ""}
         </div>`).join("");
@@ -737,7 +757,7 @@ function renderContent() {
       ${currentStage==="incentive" ? `
         <div class="policy-tag">
           <div class="policy-tag-domain">${domain.toUpperCase()}</div>
-          <div class="policy-tag-text">"${policyIdea.slice(0,120)}${policyIdea.length>120?"&hellip;":""}"</div>
+          <div class="policy-tag-text" style="word-break:break-word;white-space:pre-wrap">"${policyIdea}"</div>
         </div>` : ""}
       <div class="result-text" id="result-display"></div>
       ${scoreBadge}
@@ -1016,7 +1036,7 @@ async function loadHistory() {
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
           <div style="flex:1">
             <div style="font-family:'Courier Prime',monospace;font-size:10px;color:#d4a843;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">${item.domain || "Unknown"}</div>
-            <div style="font-size:14px;color:#f0f4ff;font-family:Georgia,serif;line-height:1.4">"${(item.policy_idea || "").slice(0,100)}${(item.policy_idea||"").length>100?"…":""}"</div>
+            <div style="font-size:14px;color:#f0f4ff;font-family:Georgia,serif;line-height:1.4">"${(item.policy_idea || "")}"</div>
           </div>
           <button onclick="deleteAnalysis('${item.id}', this)" style="background:none;border:none;color:#445;cursor:pointer;font-size:16px;flex-shrink:0;padding:0" title="Delete">🗑</button>
         </div>
