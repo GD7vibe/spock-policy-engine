@@ -196,6 +196,7 @@
       <button class="icon-btn nav-toggle-btn" onclick="toggleNav()">☰</button>
       <button class="icon-btn no-print" id="restart-btn" onclick="confirmRestart()" title="Start over" style="display:none;color:#ff8080;border-color:rgba(220,80,80,0.4)">↺ NEW</button>
 
+      <button class="icon-btn no-print" id="history-btn" onclick="openHistory()" title="Saved analyses" style="background:#252b3d;border:1px solid rgba(212,168,67,0.3);color:#d4a843">📋 HISTORY</button>
       <button class="icon-btn no-print" onclick="printPDF()" title="Print / Save as PDF" style="background:linear-gradient(135deg,#d4a843,#b8862a);color:#111;font-weight:700">⎙ PDF</button>
     </div>
   </div>
@@ -648,6 +649,7 @@ function renderContent() {
 
   const next = nextMap[currentStage];
   const resultText = results[currentStage] || "";
+  const saveBtn = resultText ? `<button onclick="saveAnalysis()" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(96,192,128,0.4);border-radius:8px;color:#60c080;font-family:'Courier Prime',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:4px">&#x1F4BE; SAVE THIS ANALYSIS</button>` : "";
 
   // Rejection banner shown after consequences if score < 5
   const rejectionBanner = (currentStage === "consequences" && resultText && scoreTooLow) ? `
@@ -744,6 +746,7 @@ function renderContent() {
       <div id="error-box"></div>
       ${resultText && next?.fn ? `<button class="primary-btn" onclick="${next.fn}" ${loading?'disabled':''}>${loading?'<span class="spin">&#x27F3;</span> PROCESSING&hellip;':next.label}</button>` : ""}
       ${loading && !resultText ? `<button class="primary-btn" disabled><span class="spin">&#x27F3;</span> PROCESSING&hellip;</button>` : ""}
+      ${saveBtn}
       ${currentStage==="monitoring" && resultText ? `
         <div class="section-divider"></div>
         <label class="field-label" style="color:#d4a843">FEEDBACK LOOP &mdash; REAL-WORLD DATA</label>
@@ -946,6 +949,126 @@ function printPDF() {
   setTimeout(() => { win.print(); }, 800);
 }
 
+// ── SAVE & HISTORY ───────────────────────────────────────────────────────────
+async function saveAnalysis() {
+  const btn = event.target;
+  btn.textContent = "SAVING...";
+  btn.disabled = true;
+  try {
+    const payload = {
+      domain,
+      policy_idea: policyIdea,
+      incentive_score: incentiveScore || null,
+      status: (incentiveScore > 0 && incentiveScore < 5) ? "rejected" : completedStages.includes("monitoring") ? "complete" : "partial",
+      incentive:       results.incentive       || null,
+      consequences:    results.consequences    || null,
+      refinement:      results.refinement      || null,
+      implementation:  results.implementation  || null,
+      monitoring:      results.monitoring      || null,
+    };
+    const res = await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = "✓ SAVED";
+      btn.style.color = "#d4a843";
+      btn.style.borderColor = "rgba(212,168,67,0.4)";
+    } else {
+      throw new Error(data.error || "Save failed");
+    }
+  } catch(e) {
+    btn.textContent = "SAVE FAILED: " + e.message;
+    btn.style.color = "#ff7070";
+    btn.disabled = false;
+  }
+}
+
+function openHistory() {
+  document.getElementById("history-overlay").style.display = "block";
+  document.getElementById("history-panel").style.display = "flex";
+  loadHistory();
+}
+
+function closeHistory() {
+  document.getElementById("history-overlay").style.display = "none";
+  document.getElementById("history-panel").style.display = "none";
+}
+
+async function loadHistory() {
+  const list = document.getElementById("history-list");
+  list.innerHTML = `<div style="color:#5060a0;font-family:'Courier Prime',monospace;font-size:12px;text-align:center;padding:40px 0">Loading...</div>`;
+  try {
+    const res = await fetch("/api/history");
+    const data = await res.json();
+    if (!data.length) {
+      list.innerHTML = `<div style="color:#5060a0;font-family:'Courier Prime',monospace;font-size:12px;text-align:center;padding:40px 0">No saved analyses yet.</div>`;
+      return;
+    }
+    list.innerHTML = data.map(item => {
+      const date = new Date(item.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+      const time = new Date(item.created_at).toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+      const statusColour = item.status === "rejected" ? "#ff6060" : item.status === "complete" ? "#60c080" : "#d4a843";
+      const stages = ["incentive","consequences","refinement","implementation","monitoring"].filter(s => item[s]);
+      return `<div style="background:#252b3d;border:1px solid rgba(212,168,67,0.2);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1">
+            <div style="font-family:'Courier Prime',monospace;font-size:10px;color:#d4a843;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">${item.domain || "Unknown"}</div>
+            <div style="font-size:14px;color:#f0f4ff;font-family:Georgia,serif;line-height:1.4">"${(item.policy_idea || "").slice(0,100)}${(item.policy_idea||"").length>100?"…":""}"</div>
+          </div>
+          <button onclick="deleteAnalysis('${item.id}', this)" style="background:none;border:none;color:#445;cursor:pointer;font-size:16px;flex-shrink:0;padding:0" title="Delete">🗑</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-family:'Courier Prime',monospace;font-size:10px;color:#7080a0">${date} ${time}</span>
+          ${item.incentive_score ? `<span style="font-family:'Courier Prime',monospace;font-size:10px;color:#d4a843">Score: ${item.incentive_score}/10</span>` : ""}
+          <span style="font-family:'Courier Prime',monospace;font-size:10px;color:${statusColour};text-transform:uppercase">${item.status || ""}</span>
+          <span style="font-family:'Courier Prime',monospace;font-size:10px;color:#5060a0">${stages.length} sections</span>
+        </div>
+        <button onclick="loadAnalysis(${JSON.stringify(item).replace(/'/g,"&#39;")})" style="padding:10px;background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.3);border-radius:6px;color:#d4a843;font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;width:100%">
+          &#x2192; LOAD THIS ANALYSIS
+        </button>
+      </div>`;
+    }).join("");
+  } catch(e) {
+    list.innerHTML = `<div style="color:#ff7070;font-family:'Courier Prime',monospace;font-size:12px;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+async function deleteAnalysis(id, btn) {
+  if (!confirm("Delete this saved analysis?")) return;
+  btn.textContent = "...";
+  try {
+    await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+    loadHistory();
+  } catch(e) {
+    btn.textContent = "🗑";
+  }
+}
+
+function loadAnalysis(item) {
+  domain = item.domain || "";
+  policyIdea = item.policy_idea || "";
+  incentiveScore = item.incentive_score || 0;
+  results = {};
+  completedStages = [];
+  cachedStageHTML = {};
+  streamedStages.clear();
+  const stageKeys = ["incentive","consequences","refinement","implementation","monitoring"];
+  stageKeys.forEach(s => {
+    if (item[s]) {
+      results[s] = item[s];
+      completedStages.push(s);
+    }
+  });
+  completedStages.push("input");
+  currentStage = completedStages.filter(s => s !== "input").pop() || "input";
+  closeHistory();
+  showRestartBtn();
+  renderStage();
+}
+
 // Start the app once DOM is ready
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", showApp);
@@ -955,5 +1078,20 @@ if (document.readyState === "loading") {
 </script>
 
 <div id="print-output"></div>
+
+<!-- HISTORY PANEL -->
+<div id="history-overlay" onclick="closeHistory()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;backdrop-filter:blur(4px)"></div>
+<div id="history-panel" style="display:none;position:fixed;top:0;right:0;width:100%;max-width:600px;height:100vh;background:#1a1f2e;border-left:1px solid rgba(212,168,67,0.3);z-index:301;overflow-y:auto;flex-direction:column">
+  <div style="padding:20px 24px;border-bottom:1px solid rgba(212,168,67,0.2);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#1a1f2e;z-index:1">
+    <div>
+      <div style="font-family:'Courier Prime',monospace;font-weight:700;font-size:16px;letter-spacing:3px;color:#d4a843">SAVED ANALYSES</div>
+      <div style="font-family:'Courier Prime',monospace;font-size:10px;color:#5060a0;letter-spacing:2px;margin-top:2px">SPOCK HISTORY</div>
+    </div>
+    <button onclick="closeHistory()" style="background:none;border:none;color:#7080a0;font-size:24px;cursor:pointer;line-height:1">✕</button>
+  </div>
+  <div id="history-list" style="padding:16px 24px;display:flex;flex-direction:column;gap:12px">
+    <div style="color:#5060a0;font-family:'Courier Prime',monospace;font-size:12px;text-align:center;padding:40px 0">Loading...</div>
+  </div>
+</div>
 </body>
 </html>
