@@ -933,7 +933,7 @@ function printPDF() {
   // Each completed section
   completed.forEach(stageId => {
     const info = stageInfo[stageId];
-    body += `<div style="margin-bottom:32px;page-break-inside:avoid">
+    body += `<div style="page-break-before:always;margin-bottom:32px;">
       <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
         <span style="font-family:'Courier Prime',monospace;font-size:10px;color:#b8862a;letter-spacing:2px">${info.label}</span>
         <span style="font-family:'Courier Prime',monospace;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a1f2e">${info.title}</span>
