@@ -433,37 +433,64 @@ let suggestionLoading = false;
 
 async function doSuggestions() {
   suggestionLoading = true;
+  suggestions = null;
   renderContent();
   try {
     const belowThreshold = incentiveScore < 5;
-    const prompt = `ORIGINAL POLICY: ${policyIdea}
+    // Truncate incentive analysis to keep prompt lean
+    const incentiveSummary = (results.incentive || "").slice(0, 800);
+    const prompt = `POLICY: ${policyIdea}
 DOMAIN: ${domain}
-INCENTIVE ANALYSIS: ${results.incentive}
-INCENTIVE SCORE: ${incentiveScore}/10
+SCORE: ${incentiveScore}/10
+KEY ISSUES FROM ANALYSIS: ${incentiveSummary}
 
 ${belowThreshold
-  ? `The policy scored ${incentiveScore}/10 — below the 5/10 threshold needed to proceed. Suggest 3 specific amendments to the policy wording that would fix the core incentive problems identified and get it above the threshold. Each amendment must stay true to the original spirit and intent of the policy.`
-  : `The policy scored ${incentiveScore}/10 — it passes the threshold but could be stronger. Suggest 3 specific amendments to the policy wording that would improve the incentive alignment further, staying within the spirit of the original idea.`
+  ? `Score is below 5/10. Suggest 3 amendments to fix the core incentive problems and get above the threshold.`
+  : `Score passes threshold but could be stronger. Suggest 3 amendments to improve incentive alignment further.`
 }
 
-For each suggestion provide:
-AMENDMENT [N]
-A single sentence describing the specific change to make to the policy.
+Use EXACTLY this format for each:
+
+AMENDMENT 1
+[One sentence: what to change]
 
 REASON
-One sentence explaining exactly which incentive problem this fixes and why it improves the score.
+[One sentence: which problem this fixes]
 
 REVISED WORDING
-The amended policy proposition as it would read after this change is applied (full restatement, not a fragment).
+[Full policy restatement with this amendment applied]
 
-Keep each amendment focused and actionable. Do not number sections beyond the three amendments. Plain text only, no markdown.`;
+AMENDMENT 2
+[One sentence: what to change]
+
+REASON
+[One sentence: which problem this fixes]
+
+REVISED WORDING
+[Full policy restatement with this amendment applied]
+
+AMENDMENT 3
+[One sentence: what to change]
+
+REASON
+[One sentence: which problem this fixes]
+
+REVISED WORDING
+[Full policy restatement with this amendment applied]
+
+Plain text only. No markdown. Stay within original policy intent.`;
 
     const result = await callClaude(prompt,
-      `You are a policy amendment specialist. Suggest precise, targeted improvements to fix incentive problems. Stay within the original intent. Plain text only, use the exact headers specified. Each amendment must be brief — the entire response under 600 words total. A policy scoring 5 or above is workable — amendments should strengthen it, not overhaul it. Only policies scoring 4 or below need fundamental rethinking.`
+      `You are a policy amendment specialist. Output exactly 3 amendments in the exact format specified. Plain text only. No markdown. Total response under 500 words.`
     );
-    suggestions = result;
+    if (result && result.includes("AMENDMENT")) {
+      suggestions = result;
+    } else {
+      suggestions = null;
+    }
   } catch(e) {
     suggestions = null;
+    console.error("Suggestions failed:", e.message);
   }
   suggestionLoading = false;
   renderContent();
@@ -711,15 +738,15 @@ function renderContent() {
       for (let i = 1; i < parts.length; i += 2) {
         const num = parseInt(parts[i]);
         const body = parts[i + 1] || "";
-        const reasonMatch = body.match(/REASON\s*\n([\s\S]+?)(?=REVISED WORDING)/i);
-        const revisedMatch = body.match(/REVISED WORDING\s*\n([\s\S]+?)$/i);
-        const titleMatch = body.match(/^\s*\n?([\s\S]+?)(?=\nREASON)/i);
-        amendmentBlocks.push({
-          num,
-          title: titleMatch ? titleMatch[1].trim() : "",
-          reason: reasonMatch ? reasonMatch[1].trim() : "",
-          revised: revisedMatch ? revisedMatch[1].trim() : "",
-        });
+        const titleMatch   = body.match(/^[\s\n]*([^\n]+)/);
+        const reasonMatch  = body.match(/REASON[:\s]*\n([\s\S]+?)(?=REVISED WORDING|AMENDMENT|$)/i);
+        const revisedMatch = body.match(/REVISED WORDING[:\s]*\n([\s\S]+?)(?=AMENDMENT\s+\d+|$)/i);
+        const title   = titleMatch   ? titleMatch[1].trim()   : "";
+        const reason  = reasonMatch  ? reasonMatch[1].trim()  : "";
+        const revised = revisedMatch ? revisedMatch[1].trim() : "";
+        if (title || revised) {
+          amendmentBlocks.push({ num, title, reason, revised });
+        }
       }
       const isBelow = incentiveScore < 5;
       const hc = isBelow ? "#ff8080" : "#d4a843";
